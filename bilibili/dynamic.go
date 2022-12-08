@@ -42,4 +42,5 @@ func GetDynamicPic(c echo.Context) (err error) {
 const getClearElemJs = `
 let c = document.querySelector(".dyn-header__right");
 if(c){ c.hidden = true };
+document.querySelector(".launch-app-btn.dynamic-float-openapp").style.display = "none";
 `
