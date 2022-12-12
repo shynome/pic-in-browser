@@ -5,5 +5,6 @@ import (
 )
 
 func Register(g *echo.Group) {
-	g.Any("/dynamic-pic", GetDynamicPic)
+	g.Any("/dynamic-pic", GetDynamicPicHandler)
+	g.GET("/dynamic-pic/:id", GetDynamicPicHandler)
 }

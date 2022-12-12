@@ -1,6 +1,7 @@
 package bilibili
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/chromedp/cdproto/emulation"
@@ -14,7 +15,7 @@ type DynamicParams struct {
 	ID string `param:"id" json:"id" form:"id" query:"id"`
 }
 
-func GetDynamicPic(c echo.Context) (err error) {
+func GetDynamicPicHandler(c echo.Context) (err error) {
 	defer err2.Handle(&err)
 
 	ctx, cancel := chromedp.NewContext(c.Request().Context())
@@ -23,9 +24,16 @@ func GetDynamicPic(c echo.Context) (err error) {
 	var params DynamicParams
 	try.To(c.Bind(&params))
 
-	link := fmt.Sprintf("https://m.bilibili.com/dynamic/%s", params.ID)
+	img := try.To1(GetDynamicPic(ctx, params.ID))
 
-	var img []byte
+	return c.Blob(200, "image/png", img)
+}
+
+func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
+	defer err2.Handle(&err)
+
+	link := fmt.Sprintf("https://m.bilibili.com/dynamic/%s", id)
+
 	tasks := chromedp.Tasks{
 		emulation.SetUserAgentOverride("Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1").WithPlatform("iPhone"),
 		emulation.SetDeviceMetricsOverride(400, 800, 2.5, true),
@@ -36,7 +44,7 @@ func GetDynamicPic(c echo.Context) (err error) {
 	}
 	try.To(chromedp.Run(ctx, tasks...))
 
-	return c.Blob(200, "image/png", img)
+	return
 }
 
 const getClearElemJs = `
