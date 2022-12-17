@@ -19,6 +19,20 @@ type DynamicParams struct {
 	ID string `param:"id" json:"id" form:"id" query:"id"`
 }
 
+func GetDynamicPicHandler(c echo.Context) (err error) {
+	defer err2.Handle(&err)
+
+	var params DynamicParams
+	try.To(c.Bind(&params))
+
+	f, err := GetDynamicPicWithCache(c.Request().Context(), params.ID)
+	if err != nil {
+		return
+	}
+
+	return c.File(f)
+}
+
 type cacheItem struct {
 	rw   *sync.RWMutex
 	file string
@@ -35,6 +49,36 @@ var dynamicPicCache = func() *ttlcache.Cache[string, *cacheItem] {
 	return cache
 }()
 
+func GetDynamicPicWithCache(ctx context.Context, id string) (string, error) {
+	item := dynamicPicCache.Get(id)
+	if item == nil {
+		rw := &sync.RWMutex{}
+		citem := &cacheItem{rw: rw, file: ""}
+		item = dynamicPicCache.Set(id, citem, ttlcache.DefaultTTL)
+	}
+	if f := dynamicExistPic(item); f != "" {
+		// 更新缓存过期时间
+		dynamicPicCache.Set(item.Key(), item.Value(), ttlcache.DefaultTTL)
+		return f, nil
+	}
+
+	citem := item.Value()
+	citem.rw.Lock()
+	defer citem.rw.Unlock()
+
+	f := fmt.Sprintf("/tmp/bilibili-dynamic-%s", id)
+
+	ctx, cancel := chromedp.NewContext(ctx)
+	defer cancel()
+	img := try.To1(GetDynamicPic(ctx, id))
+	if err := os.WriteFile(f, img, 0644); err != nil {
+		return "", nil
+	}
+	citem.file = f
+
+	return f, nil
+}
+
 func dynamicExistPic(item *ttlcache.Item[string, *cacheItem]) string {
 	if item == nil {
 		return ""
@@ -43,42 +87,6 @@ func dynamicExistPic(item *ttlcache.Item[string, *cacheItem]) string {
 	i.rw.RLock()
 	defer i.rw.RUnlock()
 	return i.file
-}
-
-func GetDynamicPicHandler(c echo.Context) (err error) {
-	defer err2.Handle(&err)
-
-	var params DynamicParams
-	try.To(c.Bind(&params))
-
-	item := dynamicPicCache.Get(params.ID)
-	if item == nil {
-		rw := &sync.RWMutex{}
-		citem := &cacheItem{rw: rw, file: ""}
-		item = dynamicPicCache.Set(params.ID, citem, ttlcache.DefaultTTL)
-	}
-	if f := dynamicExistPic(item); f != "" {
-		// 更新缓存过期时间
-		dynamicPicCache.Set(item.Key(), item.Value(), ttlcache.DefaultTTL)
-		return c.File(f)
-	}
-
-	citem := item.Value()
-	citem.rw.Lock()
-	defer citem.rw.Unlock()
-
-	f := fmt.Sprintf("/tmp/bilibili-dynamic-%s", params.ID)
-
-	ctx, cancel := chromedp.NewContext(c.Request().Context())
-	defer cancel()
-
-	img := try.To1(GetDynamicPic(ctx, params.ID))
-	if err = os.WriteFile(f, img, 0644); err != nil {
-		return
-	}
-	citem.file = f
-
-	return c.File(f)
 }
 
 func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
