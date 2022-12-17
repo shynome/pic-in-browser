@@ -3,9 +3,13 @@ package bilibili
 import (
 	"context"
 	"fmt"
+	"os"
+	"sync"
+	"time"
 
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/labstack/echo/v4"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/try"
@@ -15,18 +19,66 @@ type DynamicParams struct {
 	ID string `param:"id" json:"id" form:"id" query:"id"`
 }
 
+type cacheItem struct {
+	rw   *sync.RWMutex
+	file string
+}
+
+var dynamicPicCache = func() *ttlcache.Cache[string, *cacheItem] {
+	cache := ttlcache.New(
+		ttlcache.WithTTL[string, *cacheItem](5 * time.Minute),
+	)
+	cache.OnEviction(func(ctx context.Context, er ttlcache.EvictionReason, i *ttlcache.Item[string, *cacheItem]) {
+		os.Remove(i.Value().file)
+	})
+	go cache.Start()
+	return cache
+}()
+
+func dynamicExistPic(item *ttlcache.Item[string, *cacheItem]) string {
+	if item == nil {
+		return ""
+	}
+	i := item.Value()
+	i.rw.RLock()
+	defer i.rw.RUnlock()
+	return i.file
+}
+
 func GetDynamicPicHandler(c echo.Context) (err error) {
 	defer err2.Handle(&err)
-
-	ctx, cancel := chromedp.NewContext(c.Request().Context())
-	defer cancel()
 
 	var params DynamicParams
 	try.To(c.Bind(&params))
 
-	img := try.To1(GetDynamicPic(ctx, params.ID))
+	item := dynamicPicCache.Get(params.ID)
+	if item == nil {
+		rw := &sync.RWMutex{}
+		citem := &cacheItem{rw: rw, file: ""}
+		item = dynamicPicCache.Set(params.ID, citem, ttlcache.DefaultTTL)
+	}
+	if f := dynamicExistPic(item); f != "" {
+		// 更新缓存过期时间
+		dynamicPicCache.Set(item.Key(), item.Value(), ttlcache.DefaultTTL)
+		return c.File(f)
+	}
 
-	return c.Blob(200, "image/png", img)
+	citem := item.Value()
+	citem.rw.Lock()
+	defer citem.rw.Unlock()
+
+	f := fmt.Sprintf("/tmp/bilibili-dynamic-%s", params.ID)
+
+	ctx, cancel := chromedp.NewContext(c.Request().Context())
+	defer cancel()
+
+	img := try.To1(GetDynamicPic(ctx, params.ID))
+	if err = os.WriteFile(f, img, 0644); err != nil {
+		return
+	}
+	citem.file = f
+
+	return c.File(f)
 }
 
 func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
