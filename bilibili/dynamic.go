@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/labstack/echo/v4"
@@ -97,7 +98,31 @@ func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
 	tasks := chromedp.Tasks{
 		emulation.SetUserAgentOverride("Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1").WithPlatform("iPhone"),
 		emulation.SetDeviceMetricsOverride(400, 800, 2.5, true),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			return chromedp.Run(ctx,
+				page.Enable(),
+				page.SetLifecycleEventsEnabled(true),
+			)
+		}),
 		chromedp.Navigate(link),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			// copy from https://github.com/chromedp/chromedp/issues/431#issuecomment-592950397
+			cctx, cancel := context.WithCancel(ctx)
+			chromedp.ListenTarget(cctx, func(ev interface{}) {
+				switch e := ev.(type) {
+				case *page.EventLifecycleEvent:
+					if e.Name == "networkIdle" {
+						cancel()
+					}
+				}
+			})
+			select {
+			case <-cctx.Done():
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}),
 		chromedp.WaitReady(".dyn-card *"),
 		chromedp.Evaluate(getClearElemJs, nil),
 		chromedp.Screenshot(".dyn-card", &img, chromedp.NodeVisible),
