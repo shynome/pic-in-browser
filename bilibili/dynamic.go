@@ -123,7 +123,7 @@ func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
 				return ctx.Err()
 			}
 		}),
-		chromedp.WaitReady(".dyn-card *"),
+		// chromedp.WaitReady(".dyn-card *"),
 		chromedp.Evaluate(getClearElemJs, nil),
 		chromedp.Screenshot(".dyn-card", &img, chromedp.NodeVisible),
 	}
