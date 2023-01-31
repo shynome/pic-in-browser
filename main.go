@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/labstack/echo/v4"
+	"github.com/lainio/err2/try"
 	"github.com/shynome/pic-in-browser/bilibili"
 )
 
@@ -23,5 +24,5 @@ func main() {
 
 	bilibili.Register(e.Group("/bilibili"))
 
-	e.Start(args.Addr)
+	try.To(e.Start(args.Addr))
 }
