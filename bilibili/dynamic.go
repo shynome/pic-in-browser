@@ -93,7 +93,7 @@ func dynamicExistPic(item *ttlcache.Item[string, *cacheItem]) string {
 func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
 	defer err2.Handle(&err)
 
-	link := fmt.Sprintf("https://m.bilibili.com/dynamic/%s", id)
+	link := fmt.Sprintf("https://m.bilibili.com/opus/%s", id)
 
 	tasks := chromedp.Tasks{
 		emulation.SetUserAgentOverride("Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1").WithPlatform("iPhone"),
@@ -125,7 +125,7 @@ func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
 		}),
 		// chromedp.WaitReady(".dyn-card *"),
 		chromedp.Evaluate(getClearElemJs, nil),
-		chromedp.Screenshot(".dyn-card", &img, chromedp.NodeVisible),
+		chromedp.Screenshot(".opus-modules", &img, chromedp.NodeVisible),
 	}
 	try.To(chromedp.Run(ctx, tasks...))
 
@@ -133,7 +133,13 @@ func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
 }
 
 const getClearElemJs = `
-let c = document.querySelector(".dyn-header__right");
-if(c){ c.hidden = true };
-document.querySelector(".launch-app-btn.dynamic-float-openapp").style.display = "none";
+{
+let hidden = selector => {
+	let e = document.querySelector(selector)
+	if(e) e.style.display = "none";
+}
+hidden(".easy-follow-btn")
+hidden(".launch-app-btn.float-openapp");
+hidden(".openapp-dialog");
+}
 `
