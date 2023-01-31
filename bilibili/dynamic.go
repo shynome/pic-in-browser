@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -95,6 +96,7 @@ func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
 
 	link := fmt.Sprintf("https://m.bilibili.com/opus/%s", id)
 
+	var currentLink = ""
 	tasks := chromedp.Tasks{
 		emulation.SetUserAgentOverride("Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1").WithPlatform("iPhone"),
 		emulation.SetDeviceMetricsOverride(400, 800, 2.5, true),
@@ -125,7 +127,16 @@ func GetDynamicPic(ctx context.Context, id string) (img []byte, err error) {
 		}),
 		// chromedp.WaitReady(".dyn-card *"),
 		chromedp.Evaluate(getClearElemJs, nil),
-		chromedp.Screenshot(".opus-modules", &img, chromedp.NodeVisible),
+		chromedp.Location(&currentLink),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			var elem = ".opus-modules"
+			switch {
+			case strings.HasPrefix(currentLink, "https://m.bilibili.com/dynamic/"):
+				elem = ".dyn-card"
+			}
+			q := chromedp.Screenshot(elem, &img, chromedp.NodeVisible)
+			return q.Do(ctx)
+		}),
 	}
 	try.To(chromedp.Run(ctx, tasks...))
 
@@ -138,7 +149,13 @@ let hidden = selector => {
 	let e = document.querySelector(selector)
 	if(e) e.style.display = "none";
 }
-hidden(".easy-follow-btn")
+
+// dynamic
+hidden(".dyn-header__right");
+hidden(".launch-app-btn.dynamic-float-openapp");
+
+// opus
+hidden(".easy-follow-btn");
 hidden(".launch-app-btn.float-openapp");
 hidden(".openapp-dialog");
 }
