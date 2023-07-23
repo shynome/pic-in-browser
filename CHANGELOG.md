@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2023-07-23
+
+### Add
+
+- add `headless` flag
+
 ## [0.2.0] - 2023-07-23
 
 ### Change
