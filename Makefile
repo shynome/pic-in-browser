@@ -1,5 +1,5 @@
 build:
-	go build -o pic-in-browser
+	CGO_ENABLED=0 go build -o pic-in-browser
 docker: build
 	docker build . -t shynome/pic-in-browser:$$(git describe --tags --always --dirty)
 run: docker
