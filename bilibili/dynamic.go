@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -71,13 +70,6 @@ func GetDynamicPicWithCache(ctx context.Context, id string) (string, error) {
 
 	f := fmt.Sprintf("/tmp/bilibili-dynamic-%s", id)
 
-	homedir := try.To1(os.UserHomeDir())
-	userdatadir := filepath.Join(homedir, "./.config/pic-in-browser")
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		// chromedp.Flag("headless", false),
-		chromedp.UserDataDir(userdatadir),
-		chromedp.Flag("password-store", ""),
-	)
 	ctx, cancel := chromedp.NewExecAllocator(ctx, opts...)
 	defer cancel()
 

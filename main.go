@@ -9,11 +9,13 @@ import (
 )
 
 var args struct {
-	Addr string
+	Addr     string
+	headless bool
 }
 
 func init() {
 	flag.StringVar(&args.Addr, "addr", ":7070", "server listen addr")
+	flag.BoolVar(&args.headless, "headless", true, "headless")
 }
 
 func main() {
@@ -22,7 +24,7 @@ func main() {
 	e := echo.New()
 	e.HideBanner = true
 
-	bilibili.Register(e.Group("/bilibili"))
+	bilibili.Register(e.Group("/bilibili"), args.headless)
 
 	try.To(e.Start(args.Addr))
 }
