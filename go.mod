@@ -1,6 +1,6 @@
 module github.com/shynome/pic-in-browser
 
-go 1.19
+go 1.22.3
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20220924210414-0e3390be1777
