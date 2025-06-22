@@ -162,7 +162,7 @@ hidden(".launch-app-btn.dynamic-float-openapp");
 hidden(".easy-follow-btn");
 hidden(".launch-app-btn.float-openapp");
 hidden(".openapp-dialog");
-hidden("..fixed-openapp");
+hidden(".fixed-openapp");
 
 // 隐藏验证弹窗
 hidden('.geetest_panel')
