@@ -163,6 +163,9 @@ hidden(".easy-follow-btn");
 hidden(".launch-app-btn.float-openapp");
 hidden(".openapp-dialog");
 hidden(".fixed-openapp");
+hidden(".opus-read-more");
+document.querySelector(".limit")?.classList.remove("limit");
+
 
 // 隐藏验证弹窗
 hidden('.geetest_panel')
