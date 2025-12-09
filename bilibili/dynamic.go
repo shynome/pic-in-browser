@@ -163,6 +163,7 @@ hidden(".easy-follow-btn");
 hidden(".launch-app-btn.float-openapp");
 hidden(".openapp-dialog");
 hidden(".fixed-openapp");
+hidden(".fixed-openapp-v2");
 hidden(".opus-read-more");
 document.querySelector(".limit")?.classList.remove("limit");
 
