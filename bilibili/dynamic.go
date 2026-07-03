@@ -75,9 +75,12 @@ func GetDynamicPicWithCache(ctx context.Context, id string) (string, error) {
 
 	ctx, cancel = chromedp.NewContext(ctx)
 	defer cancel()
-	img := try.To1(GetDynamicPic(ctx, id))
+	img, err := GetDynamicPic(ctx, id)
+	if err != nil {
+		return "", err
+	}
 	if err := os.WriteFile(f, img, 0644); err != nil {
-		return "", nil
+		return "", err
 	}
 	citem.file = f
 
