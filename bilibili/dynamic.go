@@ -3,6 +3,7 @@ package bilibili
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
+	"github.com/gobwas/ws"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/labstack/echo/v4"
 	"github.com/lainio/err2"
@@ -70,8 +72,22 @@ func GetDynamicPicWithCache(ctx context.Context, id string) (string, error) {
 
 	f := fmt.Sprintf("/tmp/bilibili-dynamic-%s", id)
 
-	ctx, cancel := chromedp.NewExecAllocator(ctx, opts...)
-	defer cancel()
+	var cancel context.CancelFunc
+	if cdp := os.Getenv("CF_CDP"); cdp != "" {
+		u, err := url.Parse(cdp)
+		if err != nil {
+			return "", err
+		}
+		// chromedp 目前不支持认证头, 直接修改默认请求头来支持认证
+		ws.DefaultDialer.Header = ws.HandshakeHeaderHTTP{
+			"Authorization": {"Bearer " + u.Fragment},
+		}
+		ctx, cancel = chromedp.NewRemoteAllocator(ctx, cdp, chromedp.NoModifyURL)
+		defer cancel()
+	} else {
+		ctx, cancel = chromedp.NewExecAllocator(ctx, opts...)
+		defer cancel()
+	}
 
 	ctx, cancel = chromedp.NewContext(ctx)
 	defer cancel()
