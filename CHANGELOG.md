@@ -1,8 +1,12 @@
 # Changelog
 
+## [0.3.0] - 2026-07-03
+
+- 添加: 支持 [Cloudflare CDP](https://developers.cloudflare.com/browser-run/cdp/)
+
 ## [0.2.7] - 2025-12-09
 
-- 修复: 隐藏底部打开 APP 按钮v2
+- 修复: 隐藏底部打开 APP 按钮 v2
 
 ## [0.2.6] - 2025-08-13
 
